@@ -3,74 +3,391 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>KING 해커톤 · 배포 확인</title>
+  <title>우사기 잡기 대결 · 민첩한 하루 되세요</title>
   <style>
     * { box-sizing: border-box; }
-    body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px; background: #eef1eb; color: #17241c; font-family: system-ui, "Malgun Gothic", sans-serif; }
-    main { width: min(100%, 720px); padding: clamp(24px, 5vw, 48px); border: 1px solid #00462a; border-radius: 8px; background: white; }
-    .label { margin: 0 0 24px; color: #00462a; font-size: 14px; font-weight: 700; }
-    h1 { margin: 0 0 16px; font-size: clamp(28px, 6vw, 42px); }
-    p { line-height: 1.7; }
-    #stage { display: grid; place-items: center; min-height: 180px; margin: 28px 0 20px; padding: 24px; background: #f3f5f1; border: 1px solid #d8ded7; text-align: center; }
-    #message { margin: 0; }
-    .buttons { display: flex; flex-wrap: wrap; gap: 12px; }
-    button { padding: 12px 20px; border: 1px solid #00462a; border-radius: 4px; background: #00462a; color: white; font: inherit; cursor: pointer; }
-    #restart { background: white; color: #00462a; }
-    button:disabled { opacity: .4; cursor: default; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 16px; background: #eef1eb; color: #17241c; font-family: system-ui, "Malgun Gothic", sans-serif; }
+    main { width: min(100%, 560px); padding: 20px; border: 1px solid #00462a; border-radius: 8px; background: white; }
+    .label { margin: 0 0 8px; color: #00462a; font-size: 14px; font-weight: 700; }
+    h1 { margin: 0 0 6px; font-size: 28px; }
+    .desc { margin: 0 0 14px; line-height: 1.6; font-size: 15px; color: #45524a; }
+
+    #stage { position: relative; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; border-radius: 6px; touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+    .side { min-width: 0; }
+    .side-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 8px; padding: 6px 8px; font-size: 14px; font-weight: 700; background: #f3f5f1; border: 1px solid #d8ded7; border-bottom: 0; border-radius: 6px 6px 0 0; }
+    .side.me .side-head { background: #00462a; color: white; border-color: #00462a; }
+    .lane { position: relative; height: 400px; overflow: hidden; border: 1px solid #d8ded7; border-radius: 0 0 6px 6px; background: linear-gradient(#dff1fb, #f3f5f1); }
+    .side.me .lane { border-color: #00462a; }
+    .lane.shake { animation: shake .1s linear 10; } /* 0.1초 × 10 = 1초 진동 */
+    @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+    @media (prefers-reduced-motion: reduce) { .lane.shake { animation: none; } }
+    .zone { position: absolute; left: 0; right: 0; bottom: 62px; height: 76px; border-top: 3px dashed #00462a; border-bottom: 3px dashed #00462a; background: rgba(0, 70, 42, .10); display: grid; place-items: center; }
+    .zone.hit { background: rgba(0, 150, 80, .35); }
+    .zone.whiff { background: rgba(200, 60, 40, .25); }
+    .avatar { width: 56px; height: 56px; font-size: 40px; line-height: 56px; text-align: center; opacity: .85; }
+    .mud { position: absolute; left: 0; right: 0; bottom: 0; height: 50px; background: #6b4a2b; border-top: 4px solid #4e3520; color: #e9d8c3; display: grid; place-items: center; font-size: 13px; font-weight: 700; }
+    .rabbit { position: absolute; top: 0; left: 0; width: 60px; height: 60px; font-size: 46px; line-height: 60px; text-align: center; display: none; will-change: transform; z-index: 1; }
+    .rabbit.dim { opacity: .5; }
+    .pic img { width: 100%; height: 100%; object-fit: contain; display: block; mix-blend-mode: multiply; /* 흰 배경을 안 보이게 */ }
+    .feedback { position: absolute; left: 0; right: 0; top: 38%; text-align: center; font-size: 20px; font-weight: 800; pointer-events: none; opacity: 0; transition: opacity .15s; z-index: 2; }
+    .feedback.show { opacity: 1; }
+
+    #overlay { position: absolute; inset: 0; z-index: 5; display: grid; place-items: center; padding: 16px; background: rgba(255, 255, 255, .95); text-align: center; border-radius: 6px; overflow: auto; }
+    #overlay.hidden { display: none; }
+    #scene-pic { width: 150px; height: 150px; margin: 0 auto 10px; font-size: 100px; line-height: 150px; }
+    #scene-pic:empty { display: none; }
+    #scene-title { margin: 0 0 10px; font-size: 22px; line-height: 1.4; word-break: keep-all; }
+    #scene-title:empty { display: none; }
+    .bubble { position: relative; margin: 0 auto 10px; padding: 10px 14px; max-width: 340px; border: 2px solid #17241c; border-radius: 16px; background: white; font-size: 17px; font-weight: 700; line-height: 1.5; word-break: break-all; }
+    .bubble .who { color: #00462a; }
+    #scene-sub { margin: 0 0 12px; color: #68746b; font-size: 14px; line-height: 1.6; }
+    #scene-sub:empty { display: none; }
+    button { padding: 12px 20px; border: 1px solid #00462a; border-radius: 4px; background: #00462a; color: white; font: inherit; font-weight: 700; cursor: pointer; }
     button:focus-visible { outline: 3px solid #69a58c; outline-offset: 4px; }
-    .guide { margin-top: 28px; padding: 24px; border: 1px solid #d8ded7; background: #f8faf6; }
-    .guide h2 { margin: 0 0 12px; font-size: 22px; }
-    .guide li { margin: 10px 0; line-height: 1.7; }
-    .sheet-link { display: inline-block; margin-top: 8px; padding: 12px 18px; background: #00462a; color: white; border-radius: 4px; text-decoration: none; }
-    .sheet-link:focus-visible { outline: 3px solid #69a58c; outline-offset: 4px; }
-    .note { margin-top: 28px; padding-top: 20px; border-top: 1px solid #d8ded7; color: #68746b; font-size: 14px; }
+    #catch { width: 100%; margin-top: 12px; padding: 18px; font-size: 20px; touch-action: manipulation; }
+    #catch:disabled { opacity: .4; cursor: default; }
+    .note { margin: 12px 0 0; color: #68746b; font-size: 13px; line-height: 1.6; }
   </style>
 </head>
 <body>
   <main>
-    <p class="label">KING · 바이브코딩 해커톤</p>
-    <!-- 사전 수정 연습: 아래 제목을 원하는 문구로 바꿔 보세요. -->
-    <h1>해커톤 준비 완료</h1>
-    <p>이 화면이 GitHub Pages 공개 주소에서 보이면 배포에 성공한 것입니다.<br>시작 버튼을 눌러 기본 동작도 확인해 주세요.</p>
-    <section id="stage" aria-label="실행 확인 화면" aria-live="polite">
-      <p id="message">시작 버튼을 눌러 주세요.</p>
+    <p class="label">KING · 바이브코딩 해커톤 · 민첩한 하루 되세요</p>
+    <h1>우사기 잡기 대결</h1>
+    <p class="desc">우사기가 <strong>점선 구역</strong>에 들어온 순간 잡으세요. 모몽가보다 먼저 <strong>3마리</strong>를 잡으면 승리!</p>
+
+    <section id="stage" aria-label="게임 화면">
+      <div class="side rival">
+        <div class="side-head"><span>모몽가 <span class="score">0</span>/3</span><span class="lives"></span></div>
+        <div class="lane">
+          <div class="zone"><div class="avatar pic"></div></div>
+          <div class="mud">진흙탕</div>
+          <div class="rabbit pic" aria-hidden="true"></div>
+          <div class="feedback"></div>
+        </div>
+      </div>
+      <div class="side me">
+        <div class="side-head"><span>나(치이카와) <span class="score">0</span>/3</span><span class="lives"></span></div>
+        <div class="lane">
+          <div class="zone"><div class="avatar pic"></div></div>
+          <div class="mud">진흙탕</div>
+          <div class="rabbit pic" aria-hidden="true"></div>
+          <div class="feedback" aria-live="polite"></div>
+        </div>
+      </div>
+
+      <div id="overlay" aria-live="polite">
+        <div>
+          <div id="scene-pic" class="pic"></div>
+          <h2 id="scene-title"></h2>
+          <div id="scene-lines"></div>
+          <p id="scene-sub"></p>
+          <button id="scene-btn" type="button">시작</button>
+        </div>
+      </div>
     </section>
-    <div class="buttons">
-      <button id="start" type="button">시작</button>
-      <button id="restart" type="button" disabled>다시 시작</button>
-    </div>
-    <section class="guide" aria-labelledby="guide-title">
-      <h2 id="guide-title">참가자 정보 사전 입력</h2>
-      <p>정기 모임 전에 GitHub와 Skeam 계정을 만들고, 아래 스프레드시트에 본인 정보를 미리 기재해 주세요.</p>
-      <ol>
-        <li><strong>GitHub 계정:</strong> 계정을 생성하고 이메일 인증을 완료합니다. 공개 저장소를 만들고 이 파일을 GitHub Pages에 배포해 봅니다.</li>
-        <li><strong>Skeam 계정:</strong> 계정을 생성하고 행사에 사용할 기기에서 로그인을 확인합니다.</li>
-        <li><strong>스프레드시트:</strong> 빈 행 하나에 이름, Skeam 닉네임, 참여 여부, 사용할 AI·제작 도구를 입력합니다. 이미 본인 행이 있다면 해당 행을 수정합니다.</li>
-        <li><strong>행사 후 입력:</strong> 작품명과 Skeam 링크를 입력합니다. 아직 만들지 않은 작품 정보와 링크는 비워 두어도 됩니다.</li>
-      </ol>
-      <a class="sheet-link" href="https://docs.google.com/spreadsheets/d/1eLqrOtpMhR3VfCOIV-9_RNtlB1wUtHm_m6aK4ziDUH8/edit?usp=sharing" target="_blank" rel="noopener noreferrer">참가자 정보 입력 시트 열기 ↗</a>
-      <p style="font-size:14px;color:#68746b">다른 참가자의 행은 수정하지 마세요. 비밀번호·API 키는 기재하지 않습니다. 사전 준비·출석·제출 상태·실행 확인은 운영진이 관리합니다.</p>
-    </section>
-    <p class="note">이 파일은 배포 연습용 기본 틀입니다. 실제 게임 규칙과 조작은 당일 추가하세요.<br>사전 연습: 제목을 수정해 다시 올린 뒤 공개 페이지에도 반영되는지 확인합니다.</p>
+
+    <button id="catch" type="button" disabled>잡기!</button>
+    <p class="note">조작: 잡기 버튼 · 화면 터치 · 스페이스바 중 아무거나. 떨어지는 속도는 매번 달라요.</p>
   </main>
+
   <script>
     // 외부 라이브러리 없이 이 파일 하나로 실행됩니다.
-    const message = document.getElementById('message');
-    const start = document.getElementById('start');
-    const restart = document.getElementById('restart');
-    start.addEventListener('click', () => {
-      message.textContent = '시작 버튼이 정상적으로 작동합니다. 다시 시작 버튼도 확인해 주세요.';
-      start.disabled = true;
-      restart.disabled = false;
-      restart.focus();
+    // 그림 파일은 index.html과 같은 폴더에 아래 이름으로 올리세요. 없으면 이모지로 대신 나옵니다.
+    const IMAGES = {
+      usagi:    { src: 'usagi.png',    fallback: '🐰' },  // 떨어지는 우사기
+      momonga:  { src: 'momonga.png',  fallback: '🐿️' }, // 상대방
+      chiikawa: { src: 'chiikawa.png', fallback: '🐹' },  // 나
+      hug:      { src: 'hug.png',      fallback: '🤗' }   // 승리: 치이카와가 우사기 안아주는 그림
+    };
+
+    // ---- 난이도 조절은 여기 숫자만 바꾸면 됩니다 ----
+    const GOAL = 3;            // 먼저 이만큼 잡으면 승리
+    const MAX_LIVES = 3;       // 진흙탕에 이만큼 빠뜨리면 패배
+    const MIN_SPEED = 240;     // 가장 느린 낙하 속도(px/초)
+    const MAX_SPEED = 640;     // 가장 빠른 낙하 속도(px/초) — 매번 이 사이에서 랜덤
+    const RIVAL_SKILL = 0.85;  // 모몽가가 잡을 확률 (0~1, 높을수록 어려움)
+    const RIVAL_REACT = 0.6;   // 모몽가가 구역의 앞쪽 몇 %에서 잡는지 (작을수록 빨리 잡음)
+    const PAUSE_MS = 1000;     // 성공/실패 후 다음 우사기까지 기다리는 시간(진동 시간)
+    const RABBIT_SIZE = 60;
+
+    const stage = document.getElementById('stage');
+    const overlay = document.getElementById('overlay');
+    const scenePic = document.getElementById('scene-pic');
+    const sceneTitle = document.getElementById('scene-title');
+    const sceneLines = document.getElementById('scene-lines');
+    const sceneSub = document.getElementById('scene-sub');
+    const sceneBtn = document.getElementById('scene-btn');
+    const catchBtn = document.getElementById('catch');
+
+    // 그림 넣기 (파일이 없으면 이모지)
+    function setPic(el, key) {
+      el.textContent = '';
+      if (!key) return;
+      const info = IMAGES[key];
+      const img = new Image();
+      img.alt = '';
+      img.draggable = false;
+      img.onerror = () => { el.textContent = info.fallback; };
+      img.src = info.src;
+      el.appendChild(img);
+    }
+
+    function makeSide(selector, avatarKey) {
+      const root = document.querySelector(selector);
+      const s = {
+        lane: root.querySelector('.lane'),
+        zone: root.querySelector('.zone'),
+        mud: root.querySelector('.mud'),
+        rabbit: root.querySelector('.rabbit'),
+        feedback: root.querySelector('.feedback'),
+        scoreEl: root.querySelector('.score'),
+        livesEl: root.querySelector('.lives'),
+        score: 0, lives: MAX_LIVES, active: false, x: 0, y: 0, timer: null
+      };
+      setPic(root.querySelector('.avatar'), avatarKey);
+      setPic(s.rabbit, 'usagi');
+      return s;
+    }
+    const rival = makeSide('.side.rival', 'momonga');
+    const me = makeSide('.side.me', 'chiikawa');
+    const sides = [rival, me];
+
+    let playing = false;
+    let speed = MIN_SPEED;
+    let lastTime = 0;
+    let spawnTimer = null;
+    let waitingSpawn = false;
+    let whiffed = false;        // 내가 헛손질해서 이번 우사기는 못 잡는 상태
+    let rivalWillCatch = false; // 이번 라운드에 모몽가가 잡을지
+    let rivalCatchY = 0;        // 모몽가가 잡는 위치
+    let sceneNext = null;       // 장면 버튼을 누르면 실행할 함수
+
+    // ---------- 장면(인트로 / 엔딩) ----------
+    // lines: [{ who: '모몽가', text: '...' }, ...]
+    function showScene({ pic, title = '', lines = [], sub = '', button, next }) {
+      setPic(scenePic, pic);
+      sceneTitle.textContent = title;
+      sceneLines.textContent = '';
+      lines.forEach((line) => {
+        const bubble = document.createElement('div');
+        bubble.className = 'bubble';
+        const who = document.createElement('span');
+        who.className = 'who';
+        who.textContent = line.who + ' : ';
+        bubble.appendChild(who);
+        bubble.appendChild(document.createTextNode(line.text));
+        sceneLines.appendChild(bubble);
+      });
+      sceneSub.textContent = sub;
+      sceneBtn.textContent = button;
+      sceneNext = next;
+      overlay.classList.remove('hidden');
+      sceneBtn.focus();
+    }
+
+    function showTitle() {
+      showScene({
+        title: '모몽가보다 먼저 3마리!',
+        sub: '양쪽에 똑같은 우사기가 동시에 떨어집니다. 먼저 3마리를 잡으면 승리, 진흙탕에 3번 빠뜨리면 패배. 너무 일찍 누르면 헛손질!',
+        button: '시작',
+        next: showIntro1
+      });
+    }
+    function showIntro1() {
+      showScene({
+        pic: 'momonga',
+        lines: [{ who: '모몽가', text: '우사기는 내가 가져가도록 하지!!!!' }],
+        button: '다음 ▶',
+        next: showIntro2
+      });
+    }
+    function showIntro2() {
+      showScene({
+        pic: 'chiikawa',
+        lines: [{ who: '치이카와', text: '시러시러시러시러시러 우사기!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!' }],
+        button: '게임 시작!',
+        next: startGame
+      });
+    }
+    function showEnding(win, reason) {
+      const scoreText = `${reason} (나 ${me.score} : ${rival.score} 모몽가)`;
+      if (win) {
+        showScene({
+          pic: 'hug',
+          lines: [
+            { who: '우사기', text: '냐하!!!!!' },
+            { who: '치이카와', text: '헤에ㅔ에' }
+          ],
+          sub: '야하~~~~!!! 민첩햐댜!!!!! · ' + scoreText,
+          button: '다시 시작',
+          next: startGame
+        });
+      } else {
+        showScene({
+          pic: 'momonga',
+          lines: [{ who: '모몽가', text: '우사기는 내꺼란 말이야아아아ㅏ아아ㅏ아ㅏ아!!!!!!!!!!!!!!' }],
+          sub: '좀 민첩한 하루 좀 보내세요 · ' + scoreText,
+          button: '다시 시작',
+          next: startGame
+        });
+      }
+    }
+
+    // ---------- 게임 ----------
+    function renderHud(s) {
+      s.scoreEl.textContent = s.score;
+      s.livesEl.textContent = '❤️'.repeat(s.lives) + '🖤'.repeat(MAX_LIVES - s.lives);
+    }
+
+    function showFeedback(s, text, color) {
+      s.feedback.textContent = text;
+      s.feedback.style.color = color;
+      s.feedback.classList.add('show');
+      clearTimeout(s.timer);
+      s.timer = setTimeout(() => s.feedback.classList.remove('show'), 800);
+    }
+
+    function flashZone(s, cls) {
+      s.zone.classList.add(cls);
+      setTimeout(() => s.zone.classList.remove(cls), 180);
+    }
+
+    function shake(s) {
+      s.lane.classList.remove('shake');
+      void s.lane.offsetWidth; // 애니메이션 다시 시작시키기
+      s.lane.classList.add('shake');
+      if (s === me && navigator.vibrate) navigator.vibrate(200); // 폰이면 실제 진동도
+    }
+
+    function center(s) { return s.y + RABBIT_SIZE / 2; }
+
+    function spawn() {
+      waitingSpawn = false;
+      if (!playing) return;
+      speed = MIN_SPEED + Math.random() * (MAX_SPEED - MIN_SPEED); // 매번 다른 속도
+      whiffed = false;
+      const fx = Math.random(); // 양쪽에 같은 위치로 떨어지게
+      sides.forEach((s) => {
+        s.x = fx * (s.lane.clientWidth - RABBIT_SIZE);
+        s.y = -RABBIT_SIZE;
+        s.active = true;
+        s.rabbit.classList.remove('dim');
+        s.rabbit.style.display = 'block';
+        s.rabbit.style.transform = `translate(${s.x}px, ${s.y}px)`;
+      });
+      rivalWillCatch = Math.random() < RIVAL_SKILL;
+      rivalCatchY = rival.zone.offsetTop + Math.random() * rival.zone.offsetHeight * RIVAL_REACT;
+    }
+
+    function scheduleSpawn(delay) {
+      waitingSpawn = true;
+      clearTimeout(spawnTimer);
+      spawnTimer = setTimeout(spawn, delay);
+    }
+
+    function caught(s) {
+      s.active = false;
+      s.rabbit.style.display = 'none';
+      s.score += 1;
+      renderHud(s);
+      flashZone(s, 'hit');
+      showFeedback(s, '잡았다!', '#00462a');
+      shake(s);
+      checkEnd();
+    }
+
+    function fell(s) {
+      s.active = false;
+      s.rabbit.classList.add('dim');
+      setTimeout(() => { if (!s.active) s.rabbit.style.display = 'none'; }, 250);
+      s.lives -= 1;
+      renderHud(s);
+      showFeedback(s, '풍덩!', '#8a4b1f');
+      shake(s);
+      checkEnd();
+    }
+
+    function checkEnd() {
+      if (!playing) return;
+      if (me.score >= GOAL) return finish(true, '모몽가보다 먼저 3마리를 잡았어요.');
+      if (rival.score >= GOAL) return finish(false, '모몽가가 먼저 3마리를 잡았어요.');
+      if (me.lives <= 0) return finish(false, '우사기가 진흙탕에 3번 빠졌어요.');
+      if (rival.lives <= 0) return finish(true, '모몽가가 우사기를 3번 빠뜨렸어요.');
+    }
+
+    function loop(now) {
+      if (!playing) return;
+      const dt = Math.min((now - lastTime) / 1000, 0.05);
+      lastTime = now;
+      for (const s of sides) {
+        if (!s.active) continue;
+        s.y += speed * dt;
+        s.rabbit.style.transform = `translate(${s.x}px, ${s.y}px)`;
+        if (s === rival && rivalWillCatch && center(s) >= rivalCatchY) caught(s);
+        else if (center(s) >= s.mud.offsetTop) fell(s);
+        if (!playing) return;
+      }
+      // 양쪽 다 결과가 나오면 1초 쉬었다가(+약간의 랜덤) 다음 우사기
+      if (!me.active && !rival.active && !waitingSpawn) scheduleSpawn(PAUSE_MS + Math.random() * 600);
+      requestAnimationFrame(loop);
+    }
+
+    function tryCatch() {
+      if (!playing || !me.active || whiffed) return;
+      const c = center(me);
+      const top = me.zone.offsetTop;
+      const bottom = top + me.zone.offsetHeight;
+      if (c >= top && c <= bottom) {
+        caught(me);
+      } else {
+        // 타이밍이 안 맞으면 헛손질: 이번 우사기는 더 못 잡고 그대로 떨어짐
+        whiffed = true;
+        me.rabbit.classList.add('dim');
+        flashZone(me, 'whiff');
+        showFeedback(me, '헛손질!', '#c0392b');
+      }
+    }
+
+    function startGame() {
+      sides.forEach((s) => {
+        s.score = 0;
+        s.lives = MAX_LIVES;
+        s.active = false;
+        s.rabbit.style.display = 'none';
+        renderHud(s);
+      });
+      playing = true;
+      overlay.classList.add('hidden');
+      catchBtn.disabled = false;
+      lastTime = performance.now();
+      scheduleSpawn(800);
+      requestAnimationFrame(loop);
+    }
+
+    function finish(win, reason) {
+      playing = false;
+      clearTimeout(spawnTimer);
+      waitingSpawn = false;
+      catchBtn.disabled = true;
+      sides.forEach((s) => { // 남아 있는 우사기 치우기
+        if (s.active) { s.active = false; s.rabbit.style.display = 'none'; }
+      });
+      setTimeout(() => showEnding(win, reason), PAUSE_MS); // 진동이 끝난 뒤 엔딩
+    }
+
+    sceneBtn.addEventListener('click', () => { if (sceneNext) sceneNext(); });
+    catchBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); tryCatch(); });
+    stage.addEventListener('pointerdown', (e) => {
+      if (playing) { e.preventDefault(); tryCatch(); }
     });
-    restart.addEventListener('click', () => {
-      message.textContent = '시작 버튼을 눌러 주세요.';
-      start.disabled = false;
-      restart.disabled = true;
-      start.focus();
+    document.addEventListener('keydown', (e) => {
+      if (e.code !== 'Space' || !playing) return;
+      e.preventDefault();
+      if (!e.repeat) tryCatch();
     });
+
+    sides.forEach(renderHud);
+    showTitle();
   </script>
 </body>
 </html>
-
