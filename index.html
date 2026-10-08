@@ -32,13 +32,14 @@
     .feedback { position: absolute; left: 0; right: 0; top: 38%; text-align: center; font-size: 20px; font-weight: 800; pointer-events: none; opacity: 0; transition: opacity .15s; z-index: 2; }
     .feedback.show { opacity: 1; }
 
-    #overlay { position: absolute; inset: 0; z-index: 5; display: grid; place-items: center; padding: 16px; background: rgba(255, 255, 255, .95); text-align: center; border-radius: 6px; overflow: auto; }
+    #overlay { position: fixed; inset: 0; z-index: 10; display: grid; place-items: center; padding: 16px; background: rgba(255, 255, 255, .97); text-align: center; overflow: auto; } /* 장면은 화면 전체를 덮어요 */
     #overlay.hidden { display: none; }
-    #scene-pic { width: min(100%, 320px); height: 220px; margin: 0 auto 10px; font-size: 140px; line-height: 220px; }
+    #scene-pic { width: min(92vw, 640px); margin: 0 auto 12px; font-size: 160px; line-height: 1.2; } /* 장면 그림 크기: 640px 숫자를 바꾸면 조절돼요 */
+    #scene-pic img { width: 100%; height: auto; max-height: 55vh; }
     #scene-pic:empty { display: none; }
     #scene-title { margin: 0 0 10px; font-size: 22px; line-height: 1.4; word-break: keep-all; }
     #scene-title:empty { display: none; }
-    .bubble { position: relative; margin: 0 auto 10px; padding: 10px 14px; max-width: 340px; border: 2px solid #17241c; border-radius: 16px; background: white; font-size: 17px; font-weight: 700; line-height: 1.5; word-break: break-all; }
+    .bubble { position: relative; margin: 0 auto 10px; padding: 10px 14px; max-width: 520px; border: 2px solid #17241c; border-radius: 16px; background: white; font-size: 17px; font-weight: 700; line-height: 1.5; word-break: break-all; }
     .bubble .who { color: #00462a; }
     #scene-sub { margin: 0 0 12px; color: #68746b; font-size: 14px; line-height: 1.6; }
     #scene-sub:empty { display: none; }
@@ -108,7 +109,32 @@
     const RIVAL_SKILL = 0.85;  // 모몽가가 잡을 확률 (0~1, 높을수록 어려움)
     const RIVAL_REACT = 0.6;   // 모몽가가 구역의 앞쪽 몇 %에서 잡는지 (작을수록 빨리 잡음)
     const PAUSE_MS = 1000;     // 성공/실패 후 다음 우사기까지 기다리는 시간(진동 시간)
+    const GAP_MIN_MS = 3000;   // 한 턴이 끝난 뒤 추가로 쉬는 시간(최소)
+    const GAP_MAX_MS = 4000;   // 한 턴이 끝난 뒤 추가로 쉬는 시간(최대)
     const RABBIT_SIZE = 60;
+
+    // 소리 파일도 index.html과 같은 폴더에 아래 이름으로 올리세요.
+    const SOUNDS = {
+      usagi:   new Audio('usagi-yahaaaaaa.mp3'),      // 우사기가 떨어질 때마다
+      momonga: new Audio('momonga-silly-noise.mp3')   // 모몽가가 이겼을 때
+    };
+    function playSound(key) {
+      const a = SOUNDS[key];
+      try { a.currentTime = 0; const p = a.play(); if (p) p.catch(() => {}); } catch (e) {}
+    }
+    function stopSound(key) {
+      try { SOUNDS[key].pause(); } catch (e) {}
+    }
+    let soundsUnlocked = false;
+    function unlockSounds() { // 폰 브라우저는 버튼을 누른 순간에 한 번 재생해 둬야 이후에도 소리가 남
+      if (soundsUnlocked) return;
+      soundsUnlocked = true;
+      Object.values(SOUNDS).forEach((a) => {
+        a.muted = true;
+        const p = a.play();
+        if (p) p.then(() => { a.pause(); a.currentTime = 0; a.muted = false; }).catch(() => { a.muted = false; });
+      });
+    }
 
     const stage = document.getElementById('stage');
     const overlay = document.getElementById('overlay');
@@ -223,6 +249,8 @@
           next: startGame
         });
       } else {
+        stopSound('usagi');
+        playSound('momonga');
         showScene({
           pic: 'momonga',
           lines: [{ who: '모몽가', text: '우사기는 내꺼란 말이야아아아ㅏ아아ㅏ아ㅏ아!!!!!!!!!!!!!!' }],
@@ -266,6 +294,7 @@
       if (!playing) return;
       speed = MIN_SPEED + Math.random() * (MAX_SPEED - MIN_SPEED); // 매번 다른 속도
       whiffed = false;
+      playSound('usagi');
       const fx = Math.random(); // 양쪽에 같은 위치로 떨어지게
       sides.forEach((s) => {
         s.x = fx * (s.lane.clientWidth - RABBIT_SIZE);
@@ -327,8 +356,8 @@
         else if (center(s) >= s.mud.offsetTop) fell(s);
         if (!playing) return;
       }
-      // 양쪽 다 결과가 나오면 1초 쉬었다가(+약간의 랜덤) 다음 우사기
-      if (!me.active && !rival.active && !waitingSpawn) scheduleSpawn(PAUSE_MS + Math.random() * 600);
+      // 양쪽 다 결과가 나오면 진동 1초 + 추가로 3~4초 쉬었다가 다음 우사기
+      if (!me.active && !rival.active && !waitingSpawn) scheduleSpawn(PAUSE_MS + GAP_MIN_MS + Math.random() * (GAP_MAX_MS - GAP_MIN_MS));
       requestAnimationFrame(loop);
     }
 
@@ -349,6 +378,7 @@
     }
 
     function startGame() {
+      stopSound('momonga');
       sides.forEach((s) => {
         s.score = 0;
         s.lives = MAX_LIVES;
@@ -375,7 +405,7 @@
       setTimeout(() => showEnding(win, reason), PAUSE_MS); // 진동이 끝난 뒤 엔딩
     }
 
-    sceneBtn.addEventListener('click', () => { if (sceneNext) sceneNext(); });
+    sceneBtn.addEventListener('click', () => { unlockSounds(); if (sceneNext) sceneNext(); });
     catchBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); tryCatch(); });
     stage.addEventListener('pointerdown', (e) => {
       if (playing) { e.preventDefault(); tryCatch(); }
