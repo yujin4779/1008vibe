@@ -222,7 +222,7 @@
     function showIntro1() {
       showScene({
         pic: 'momonga',
-        lines: [{ who: '모몽가', text: '우사기는 내가 가져가도록 하지!!!!' }],
+        lines: [{ who: '모몽가', text: '우사기는 내가 가져갈 꺼란 말이야아아아ㅏ아아아ㅏ아아아!!!!!!' }],
         button: '다음 ▶',
         next: showIntro2
       });
@@ -238,10 +238,11 @@
     function showEnding(win, reason) {
       const scoreText = `${reason} (나 ${me.score} : ${rival.score} 모몽가)`;
       if (win) {
+        playSound('usagi');
         showScene({
           pic: 'hug',
           lines: [
-            { who: '우사기', text: '냐하!!!!!' },
+            { who: '우사기', text: '우나 야하 푸르르 우나아 쁘리히 야하하 우나나 푸르르르 야하 우나아아 쁘리히 우나 야하하 푸 르르 우나나나 야하아 뿌리히 우나아 푸르르르 야하 우나 우나아아 쁘리히 야하하 푸르르 우나 나 야하 우나아 쁘리히 푸르르르 우나 야하하 우 나아아 뿌리히 야하 우나나나 푸르르 우나아' },
             { who: '치이카와', text: '헤에ㅔ에' }
           ],
           sub: '야하~~~~!!! 민첩햐댜!!!!! · ' + scoreText,
@@ -254,7 +255,7 @@
         showScene({
           pic: 'momonga',
           lines: [{ who: '모몽가', text: '우사기는 내꺼란 말이야아아아ㅏ아아ㅏ아ㅏ아!!!!!!!!!!!!!!' }],
-          sub: '좀 민첩한 하루 좀 보내세요 · ' + scoreText,
+          sub: '민첩해지란 말이야아아아ㅏ아아아!!!!!!!' + scoreText,
           button: '다시 시작',
           next: startGame
         });
